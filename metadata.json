@@ -1,0 +1,8 @@
+{
+  "name": "The Little World Journal",
+  "description": "A personal travel planner, bucket list, memory scrapbook, booking organizer, budget tracker, and digital passport.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

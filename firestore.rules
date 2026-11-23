@@ -1,0 +1,461 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.uid == userId;
+    }
+
+    // Entity validation blueprints
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'budget', 'seeded', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'displayName', 'email', 'photoURL', 'budget', 'seeded', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid == userId && isValidId(data.uid) &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 160)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 500)) &&
+        data.budget is number && data.budget >= 0 && data.budget <= 1000000000 &&
+        data.seeded is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCountryRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'flag', 'continent', 'capital', 'currency',
+        'language', 'season', 'budget', 'duration', 'timeZone', 'scene',
+        'desc', 'places', 'dest', 'flagged', 'mapCoords', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'name', 'flag', 'continent', 'capital', 'currency',
+        'language', 'season', 'budget', 'duration', 'timeZone', 'scene',
+        'desc', 'places', 'dest', 'flagged', 'mapCoords', 'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 80 &&
+      data.flag is string && data.flag.size() >= 1 && data.flag.size() <= 16 &&
+      data.continent in ['Asia', 'Europe', 'North America', 'South America', 'Africa', 'Oceania', 'Antarctica'] &&
+      data.capital is string && data.capital.size() <= 100 &&
+      data.currency is string && data.currency.size() <= 80 &&
+      data.language is string && data.language.size() <= 80 &&
+      data.season is string && data.season.size() <= 80 &&
+      data.budget is string && data.budget.size() <= 80 &&
+      data.duration is string && data.duration.size() <= 60 &&
+      data.timeZone is string && data.timeZone.size() <= 60 &&
+      data.scene is string && data.scene.size() <= 40 &&
+      data.desc is string && data.desc.size() <= 600 &&
+      data.places is list && data.places.size() <= 30 &&
+      (data.places.size() == 0 || data.places[0] is string) &&
+      data.dest is list && data.dest.size() <= 30 &&
+      (data.dest.size() == 0 || data.dest[0] is string) &&
+      data.flagged in ['visited', 'wishlist', 'none'] &&
+      data.mapCoords is map &&
+      data.mapCoords.keys().hasAll(['x', 'y']) &&
+      data.mapCoords.keys().hasOnly(['x', 'y']) &&
+      data.mapCoords.x is number && data.mapCoords.x >= 0 && data.mapCoords.x <= 1000 &&
+      data.mapCoords.y is number && data.mapCoords.y >= 0 && data.mapCoords.y <= 1000 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidTripRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'country', 'date', 'days', 'status',
+        'notes', 'activities', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'name', 'country', 'date', 'days', 'status',
+        'notes', 'itineraryOverview', 'activities', 'packingList', 'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.country is string && data.country.size() >= 1 && data.country.size() <= 80 &&
+      data.date is string && data.date.size() >= 1 && data.date.size() <= 20 &&
+      data.days is number && data.days >= 1 && data.days <= 3650 &&
+      data.status in ['Planning', 'Booked', 'Completed'] &&
+      data.notes is string && data.notes.size() <= 1000 &&
+      (!('itineraryOverview' in data) || (data.itineraryOverview is string && data.itineraryOverview.size() <= 1000)) &&
+      data.activities is list && data.activities.size() <= 80 &&
+      (data.activities.size() == 0 || data.activities[0] is map) &&
+      (!('packingList' in data) || (
+        data.packingList is list &&
+        data.packingList.size() <= 60 &&
+        (data.packingList.size() == 0 || data.packingList[0] is map)
+      )) &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidWishRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'country', 'status', 'priority', 'note', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'name', 'country', 'status', 'priority', 'note', 'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.country is string && data.country.size() >= 1 && data.country.size() <= 80 &&
+      data.status in ['Dream destination', 'Planning', 'Preparing', 'Booked', 'Travelling', 'Completed'] &&
+      data.priority in ['High', 'Medium', 'Low'] &&
+      data.note is string && data.note.size() <= 400 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidJournalRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'title', 'country', 'date', 'text', 'scene', 'liked', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'title', 'country', 'date', 'text', 'scene', 'photoUrl',
+        'location', 'companions', 'weather', 'highlights', 'gallery',
+        'liked', 'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+      data.country is string && data.country.size() >= 1 && data.country.size() <= 80 &&
+      data.date is string && data.date.size() >= 1 && data.date.size() <= 20 &&
+      data.text is string && data.text.size() >= 1 && data.text.size() <= 5000 &&
+      data.scene is string && data.scene.size() <= 40 &&
+      (!('photoUrl' in data) || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+      (!('location' in data) || (data.location is string && data.location.size() <= 120)) &&
+      (!('companions' in data) || (data.companions is string && data.companions.size() <= 80)) &&
+      (!('weather' in data) || (data.weather is string && data.weather.size() <= 80)) &&
+      (!('highlights' in data) || (
+        data.highlights is list &&
+        data.highlights.size() <= 15 &&
+        (data.highlights.size() == 0 || data.highlights[0] is string)
+      )) &&
+      (!('gallery' in data) || (
+        data.gallery is list &&
+        data.gallery.size() <= 12 &&
+        (data.gallery.size() == 0 || data.gallery[0] is map)
+      )) &&
+      data.liked is bool &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidBookingRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'provider', 'ref', 'date', 'status', 'amount', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'name', 'provider', 'ref', 'date', 'status', 'amount', 'link', 'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 140 &&
+      data.provider is string && data.provider.size() >= 1 && data.provider.size() <= 100 &&
+      data.ref is string && data.ref.size() <= 80 &&
+      data.date is string && data.date.size() >= 1 && data.date.size() <= 20 &&
+      data.status in ['Paid', 'Partially paid', 'Pending', 'Refunded'] &&
+      data.amount is number && data.amount >= 0 && data.amount <= 1000000000 &&
+      (!('link' in data) || (data.link is string && data.link.size() <= 500)) &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidExpenseRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'name', 'category', 'amount', 'date', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'name', 'country', 'destination', 'category', 'amount', 'date', 'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 140 &&
+      (!('country' in data) || (data.country is string && data.country.size() <= 80)) &&
+      (!('destination' in data) || (data.destination is string && data.destination.size() <= 120)) &&
+      data.category in ['Flights', 'Accommodation', 'Food', 'Transportation', 'Activities', 'Shopping', 'Insurance', 'Other'] &&
+      data.amount is number && data.amount >= 0 && data.amount <= 1000000000 &&
+      data.date is string && data.date.size() >= 1 && data.date.size() <= 20 &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidBudgetEstimateRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'title', 'country', 'destination', 'travelDate', 'days',
+        'travelers', 'preference', 'currency', 'breakdown', 'notes', 'aiGenerated',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'title', 'country', 'destination', 'travelDate', 'days',
+        'travelers', 'preference', 'currency', 'breakdown', 'notes', 'aiGenerated',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+      data.country is string && data.country.size() >= 1 && data.country.size() <= 80 &&
+      data.destination is string && data.destination.size() <= 120 &&
+      data.travelDate is string && data.travelDate.size() >= 1 && data.travelDate.size() <= 20 &&
+      data.days is number && data.days >= 1 && data.days <= 3650 &&
+      data.travelers is number && data.travelers >= 1 && data.travelers <= 50 &&
+      data.preference in ['Shoestring / Budget', 'Mid-range / Balanced', 'Comfort / Luxury'] &&
+      data.currency is string && data.currency.size() >= 1 && data.currency.size() <= 16 &&
+      data.breakdown is map &&
+      data.breakdown.keys().hasAll(['transportation', 'accommodation', 'food', 'activities', 'other']) &&
+      data.breakdown.keys().hasOnly(['transportation', 'accommodation', 'food', 'activities', 'other']) &&
+      data.breakdown.transportation is number && data.breakdown.transportation >= 0 && data.breakdown.transportation <= 1000000000 &&
+      data.breakdown.accommodation is number && data.breakdown.accommodation >= 0 && data.breakdown.accommodation <= 1000000000 &&
+      data.breakdown.food is number && data.breakdown.food >= 0 && data.breakdown.food <= 1000000000 &&
+      data.breakdown.activities is number && data.breakdown.activities >= 0 && data.breakdown.activities <= 1000000000 &&
+      data.breakdown.other is number && data.breakdown.other >= 0 && data.breakdown.other <= 1000000000 &&
+      data.notes is string && data.notes.size() <= 1200 &&
+      data.aiGenerated is bool &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidTransportRouteRecord(data, userId) {
+      return data.keys().hasAll([
+        'ownerId', 'country', 'origin', 'destination', 'mode', 'operator',
+        'departurePoint', 'arrivalPoint', 'duration', 'fareLocal',
+        'estimatedPhpFare', 'schedule', 'verificationStatus', 'steps',
+        'sourceLinks', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'ownerId', 'country', 'city', 'origin', 'destination', 'mode', 'operator',
+        'departurePoint', 'arrivalPoint', 'duration', 'fareLocal',
+        'estimatedPhpFare', 'schedule', 'bookingUrl', 'verificationStatus',
+        'verificationNote', 'steps', 'sourceLinks', 'createdAt', 'updatedAt'
+      ]) &&
+      data.ownerId is string && data.ownerId == userId &&
+      data.country is string && data.country.size() >= 1 && data.country.size() <= 80 &&
+      (!('city' in data) || (data.city is string && data.city.size() <= 100)) &&
+      data.origin is string && data.origin.size() >= 1 && data.origin.size() <= 140 &&
+      data.destination is string && data.destination.size() >= 1 && data.destination.size() <= 140 &&
+      data.mode in ['Train', 'Bus', 'Ferry', 'Taxi', 'Ride-Hailing', 'Local Transit', 'Multi-Modal'] &&
+      data.operator is string && data.operator.size() >= 1 && data.operator.size() <= 120 &&
+      data.departurePoint is string && data.departurePoint.size() <= 140 &&
+      data.arrivalPoint is string && data.arrivalPoint.size() <= 140 &&
+      data.duration is string && data.duration.size() <= 60 &&
+      data.fareLocal is string && data.fareLocal.size() <= 80 &&
+      data.estimatedPhpFare is number && data.estimatedPhpFare >= 0 && data.estimatedPhpFare <= 1000000000 &&
+      data.schedule is string && data.schedule.size() <= 180 &&
+      (!('bookingUrl' in data) || (data.bookingUrl is string && data.bookingUrl.size() <= 500)) &&
+      data.verificationStatus in ['verified', 'estimated'] &&
+      (!('verificationNote' in data) || (data.verificationNote is string && data.verificationNote.size() <= 240)) &&
+      data.steps is list && data.steps.size() <= 12 &&
+      (data.steps.size() == 0 || data.steps[0] is map) &&
+      data.sourceLinks is list && data.sourceLinks.size() <= 10 &&
+      (data.sourceLinks.size() == 0 || data.sourceLinks[0] is map) &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    // Private User Profile
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isVerifiedOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId) &&
+        isVerifiedOwner(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) &&
+        isVerifiedOwner(userId) &&
+        isValidUserProfile(incoming(), userId) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        (
+          incoming().diff(existing()).affectedKeys().hasOnly(['budget', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'email', 'updatedAt']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['seeded', 'updatedAt'])
+        );
+      allow delete: if false;
+
+      // Countries subcollection
+      match /countries/{countryId} {
+        allow get: if isValidId(userId) && isValidId(countryId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(countryId) &&
+          isVerifiedOwner(userId) &&
+          isValidCountryRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(countryId) &&
+          isVerifiedOwner(userId) &&
+          isValidCountryRecord(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['flagged', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['places', 'dest', 'updatedAt'])
+          );
+        allow delete: if isValidId(userId) && isValidId(countryId) && isVerifiedOwner(userId);
+      }
+
+      // Trips subcollection
+      match /trips/{tripId} {
+        allow get: if isValidId(userId) && isValidId(tripId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(tripId) &&
+          isVerifiedOwner(userId) &&
+          isValidTripRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(tripId) &&
+          isVerifiedOwner(userId) &&
+          isValidTripRecord(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['notes', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['activities', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['activities', 'itineraryOverview', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['itineraryOverview', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly(['packingList', 'updatedAt'])
+          );
+        allow delete: if isValidId(userId) && isValidId(tripId) && isVerifiedOwner(userId);
+      }
+
+      // Wishes (Bucket list) subcollection
+      match /wishes/{wishId} {
+        allow get: if isValidId(userId) && isValidId(wishId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(wishId) &&
+          isVerifiedOwner(userId) &&
+          isValidWishRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(wishId) &&
+          isVerifiedOwner(userId) &&
+          isValidWishRecord(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(wishId) && isVerifiedOwner(userId);
+      }
+
+      // Travel Journal subcollection
+      match /journals/{journalId} {
+        allow get: if isValidId(userId) && isValidId(journalId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(journalId) &&
+          isVerifiedOwner(userId) &&
+          isValidJournalRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(journalId) &&
+          isVerifiedOwner(userId) &&
+          isValidJournalRecord(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          (
+            incoming().diff(existing()).affectedKeys().hasOnly(['liked', 'updatedAt']) ||
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'country', 'date', 'text', 'scene', 'photoUrl',
+              'location', 'companions', 'weather', 'highlights', 'gallery', 'updatedAt'
+            ])
+          );
+        allow delete: if isValidId(userId) && isValidId(journalId) && isVerifiedOwner(userId);
+      }
+
+      // Bookings subcollection
+      match /bookings/{bookingId} {
+        allow get: if isValidId(userId) && isValidId(bookingId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(bookingId) &&
+          isVerifiedOwner(userId) &&
+          isValidBookingRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(bookingId) &&
+          isVerifiedOwner(userId) &&
+          isValidBookingRecord(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(bookingId) && isVerifiedOwner(userId);
+      }
+
+      // Expenses subcollection
+      match /expenses/{expenseId} {
+        allow get: if isValidId(userId) && isValidId(expenseId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(expenseId) &&
+          isVerifiedOwner(userId) &&
+          isValidExpenseRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(expenseId) &&
+          isVerifiedOwner(userId) &&
+          isValidExpenseRecord(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['country', 'destination', 'updatedAt']);
+        allow delete: if isValidId(userId) && isValidId(expenseId) && isVerifiedOwner(userId);
+      }
+
+      // Saved Budget Estimates subcollection
+      match /budgetEstimates/{estimateId} {
+        allow get: if isValidId(userId) && isValidId(estimateId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(estimateId) &&
+          isVerifiedOwner(userId) &&
+          isValidBudgetEstimateRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(estimateId) &&
+          isVerifiedOwner(userId) &&
+          isValidBudgetEstimateRecord(incoming(), userId) &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'country', 'destination', 'travelDate', 'days',
+            'travelers', 'preference', 'breakdown', 'notes', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(estimateId) && isVerifiedOwner(userId);
+      }
+
+      // Saved Transportation Routes subcollection
+      match /transportRoutes/{routeId} {
+        allow get: if isValidId(userId) && isValidId(routeId) && isVerifiedOwner(userId);
+        allow list: if isVerifiedOwner(userId) && existing().ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(routeId) &&
+          isVerifiedOwner(userId) &&
+          isValidTransportRouteRecord(incoming(), userId) &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(routeId) && isVerifiedOwner(userId);
+      }
+    }
+  }
+}

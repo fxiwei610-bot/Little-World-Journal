@@ -1,0 +1,661 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private explorer profile and base budget preferences for an authenticated user.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 160
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "budget": {
+          "type": "number"
+        },
+        "seeded": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "budget", "seeded", "createdAt", "updatedAt"]
+    },
+    "CountryRecord": {
+      "title": "CountryRecord",
+      "description": "User-saved country profile, visited/wishlist flag, and custom places.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "flag": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "continent": {
+          "type": "string",
+          "enum": ["Asia", "Europe", "North America", "South America", "Africa", "Oceania", "Antarctica"]
+        },
+        "capital": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "currency": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "language": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "season": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "budget": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "duration": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "timeZone": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "scene": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "desc": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "places": {
+          "type": "array",
+          "description": "Bounded up to 30 regions or cities."
+        },
+        "dest": {
+          "type": "array",
+          "description": "Bounded up to 30 destination ideas."
+        },
+        "flagged": {
+          "type": "string",
+          "enum": ["visited", "wishlist", "none"]
+        },
+        "mapCoords": {
+          "type": "object",
+          "description": "Map coordinates { x: number, y: number }."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "name",
+        "flag",
+        "continent",
+        "capital",
+        "currency",
+        "language",
+        "season",
+        "budget",
+        "duration",
+        "timeZone",
+        "scene",
+        "desc",
+        "places",
+        "dest",
+        "flagged",
+        "mapCoords",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TripRecord": {
+      "title": "TripRecord",
+      "description": "A planned or booked travel itinerary belonging to a user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "country": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "days": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Planning", "Booked", "Completed"]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "itineraryOverview": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "activities": {
+          "type": "array",
+          "description": "Bounded up to 80 detailed day-by-day itinerary activities."
+        },
+        "packingList": {
+          "type": "array",
+          "description": "Bounded up to 60 smart packing checklist items."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "country", "date", "days", "status", "notes", "activities", "createdAt", "updatedAt"]
+    },
+    "WishRecord": {
+      "title": "WishRecord",
+      "description": "A bucket list destination entry belonging to a user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "country": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Dream destination", "Planning", "Preparing", "Booked", "Travelling", "Completed"]
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["High", "Medium", "Low"]
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "country", "status", "priority", "note", "createdAt", "updatedAt"]
+    },
+    "JournalRecord": {
+      "title": "JournalRecord",
+      "description": "A travel memory journal entry belonging to a user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "country": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        },
+        "scene": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "photoUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "companions": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "weather": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "highlights": {
+          "type": "array",
+          "description": "Bounded up to 15 memorable trip highlights."
+        },
+        "gallery": {
+          "type": "array",
+          "description": "Bounded up to 12 gallery photos with optional captions."
+        },
+        "liked": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "title", "country", "date", "text", "scene", "liked", "createdAt", "updatedAt"]
+    },
+    "BookingRecord": {
+      "title": "BookingRecord",
+      "description": "A saved booking confirmation record belonging to a user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "ref": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Paid", "Partially paid", "Pending", "Refunded"]
+        },
+        "amount": {
+          "type": "number"
+        },
+        "link": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "provider", "ref", "date", "status", "amount", "createdAt", "updatedAt"]
+    },
+    "ExpenseRecord": {
+      "title": "ExpenseRecord",
+      "description": "A travel budget expense record belonging to a user, organized by country or destination.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "country": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "destination": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Flights", "Accommodation", "Food", "Transportation", "Activities", "Shopping", "Insurance", "Other"]
+        },
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "name", "category", "amount", "date", "createdAt", "updatedAt"]
+    },
+    "BudgetEstimateRecord": {
+      "title": "BudgetEstimateRecord",
+      "description": "A customizable AI-generated or manual trip budget estimate saved by a user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "country": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "destination": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "travelDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "days": {
+          "type": "number"
+        },
+        "travelers": {
+          "type": "number"
+        },
+        "preference": {
+          "type": "string",
+          "enum": ["Shoestring / Budget", "Mid-range / Balanced", "Comfort / Luxury"]
+        },
+        "currency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "breakdown": {
+          "type": "object",
+          "description": "Estimated budget split across transportation, accommodation, food, activities, and other."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1200
+        },
+        "aiGenerated": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "title",
+        "country",
+        "destination",
+        "travelDate",
+        "days",
+        "travelers",
+        "preference",
+        "currency",
+        "breakdown",
+        "notes",
+        "aiGenerated",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TransportRouteRecord": {
+      "title": "TransportRouteRecord",
+      "description": "A saved worldwide transportation route with operator, fare, schedule, verification status, and step-by-step transfer details.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "country": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "city": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "origin": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["Train", "Bus", "Ferry", "Taxi", "Ride-Hailing", "Local Transit", "Multi-Modal"]
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "departurePoint": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "arrivalPoint": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "duration": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "fareLocal": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "estimatedPhpFare": {
+          "type": "number"
+        },
+        "schedule": {
+          "type": "string",
+          "maxLength": 180
+        },
+        "bookingUrl": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "verificationStatus": {
+          "type": "string",
+          "enum": ["verified", "estimated"]
+        },
+        "verificationNote": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "steps": {
+          "type": "array",
+          "description": "Bounded up to 12 step-by-step travel instructions including transfers and last-mile notes."
+        },
+        "sourceLinks": {
+          "type": "array",
+          "description": "Bounded up to 10 external source links to confirm schedules and fares."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ownerId",
+        "country",
+        "origin",
+        "destination",
+        "mode",
+        "operator",
+        "departurePoint",
+        "arrivalPoint",
+        "duration",
+        "fareLocal",
+        "estimatedPhpFare",
+        "schedule",
+        "verificationStatus",
+        "steps",
+        "sourceLinks",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and budget preference."
+    },
+    "/users/{userId}/countries/{countryId}": {
+      "schema": { "$ref": "#/entities/CountryRecord" },
+      "description": "User's country explorer records and visited/wishlist flags."
+    },
+    "/users/{userId}/trips/{tripId}": {
+      "schema": { "$ref": "#/entities/TripRecord" },
+      "description": "User's planned trips and itinerary activities."
+    },
+    "/users/{userId}/wishes/{wishId}": {
+      "schema": { "$ref": "#/entities/WishRecord" },
+      "description": "User's bucket list destinations."
+    },
+    "/users/{userId}/journals/{journalId}": {
+      "schema": { "$ref": "#/entities/JournalRecord" },
+      "description": "User's travel journal entries."
+    },
+    "/users/{userId}/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/BookingRecord" },
+      "description": "User's saved booking records."
+    },
+    "/users/{userId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/ExpenseRecord" },
+      "description": "User's travel budget expenses organized by country or destination."
+    },
+    "/users/{userId}/budgetEstimates/{estimateId}": {
+      "schema": { "$ref": "#/entities/BudgetEstimateRecord" },
+      "description": "User's saved AI-generated and customized trip budget estimates."
+    },
+    "/users/{userId}/transportRoutes/{routeId}": {
+      "schema": { "$ref": "#/entities/TransportRouteRecord" },
+      "description": "User's saved transportation routes with operators, schedules, fares, and transfer steps."
+    }
+  }
+}
